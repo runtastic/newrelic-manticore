@@ -2,11 +2,11 @@
 
 lib = File.expand_path("lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "newrelic-manticore/version"
+require "newrelic/manticore/version"
 
 Gem::Specification.new do |gem|
   gem.name          = "newrelic-manticore"
-  gem.version       = NewrelicManticore::VERSION
+  gem.version       = Newrelic::Manticore::VERSION
   gem.authors       = ["Dominik Goltermann",
                        "Alexander Junger"]
 
