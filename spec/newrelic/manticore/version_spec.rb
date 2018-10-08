@@ -2,8 +2,8 @@
 
 require "spec_helper"
 
-describe NewrelicManticore do
+describe Newrelic::Manticore do
   it "has a version number" do
-    expect(NewrelicManticore::VERSION).not_to be nil
+    expect(Newrelic::Manticore::VERSION).not_to be nil
   end
 end
