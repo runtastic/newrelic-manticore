@@ -1,1 +1,4 @@
 require: rt_rubocop_defaults
+
+AllCops:
+  TargetRubyVersion: 2.2

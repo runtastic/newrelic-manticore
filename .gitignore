@@ -6,4 +6,6 @@
 /doc/
 /pkg/
 /spec/reports/
+*.swp
+/log/*
 /tmp/
