@@ -2,11 +2,11 @@
 
 lib = File.expand_path("lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "newrelic/manticore/version"
+require "new_relic/manticore/version"
 
 Gem::Specification.new do |gem|
   gem.name          = "newrelic-manticore"
-  gem.version       = Newrelic::Manticore::VERSION
+  gem.version       = NewRelic::Manticore::VERSION
   gem.authors       = ["Dominik Goltermann",
                        "Alexander Junger"]
 
@@ -25,10 +25,14 @@ Gem::Specification.new do |gem|
   gem.executables   = gem.files.grep(%r{^exe/}) { |f| File.basename(f) }
   gem.require_paths = ["lib"]
 
+  gem.add_runtime_dependency     "newrelic_rpm", "~> 5"
+
   gem.add_development_dependency "bundler", "~> 1.13"
-  gem.add_development_dependency "pry", "~> 0"
+  gem.add_development_dependency "manticore", "~> 0"
   gem.add_development_dependency "rake", "~> 10.0"
   gem.add_development_dependency "rspec", "~> 3.0"
   gem.add_development_dependency "rt_rubocop_defaults", "~> 1"
   gem.add_development_dependency "rubocop_runner", "~> 2"
+  gem.add_development_dependency "test-unit"
+  gem.add_development_dependency "webmock", "~> 3"
 end
