@@ -3,3 +3,8 @@ rvm:
   - jruby-9.0.5.0 # ruby 2.2
   - jruby-9.1.17.0 # ruby 2.3
   - jruby-9.2.0.0 # ruby 2.5
+jobs:
+  include:
+    - stage: linting
+      rvm: jruby-9.2.0.0
+      script: bundle exec rake rubocop
