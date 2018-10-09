@@ -10,6 +10,25 @@ require "new_relic/manticore/wrapped_response"
 
 module NewRelic
   module Manticore
+    # We do not want to create a segment if there is no newrelic
+    # transaction or if we are inside a database segment.
+    #
+    # An external call segment inside a database segment would
+    # deduct the time needed in manticore from the database call,
+    # which we want to be the total time needed for the database
+    # operation
+    def self.create_segment?
+      state = NewRelic::Agent::TransactionState.tl_get
+      return false unless state && state.current_transaction
+
+      existing_segments = state.current_transaction.segments
+
+      existing_segments.empty? ||
+        !existing_segments.last.is_a?(
+          ::NewRelic::Agent::Transaction::DatastoreSegment
+        )
+    end
+
     # rubocop:disable Metrics/BlockLength
     DependencyDetection.defer do
       @name = :manticore
@@ -31,38 +50,50 @@ module NewRelic
         )
 
         ::Manticore::Client.class_eval do
+          # This is called for parallel requests that are executed in
+          # a batch
+          #
+          # rubocop:disable Metrics/MethodLength
           def execute_with_newrelic_trace!
-            segment = NewRelic::Agent::External.start_segment(
-              library: "Manticore",
-              uri: @async_requests.first.request.uri.to_s,
-              procedure: "Parallel batch"
-            )
-            segment.add_request_headers(PARALLEL_REQUEST_DUMMY)
+            if NewRelic::Manticore.create_segment?
+              segment = NewRelic::Agent::External.start_segment(
+                library: "Manticore",
+                uri: @async_requests.first.request.uri.to_s,
+                procedure: "Parallel batch"
+              )
+              segment.add_request_headers(PARALLEL_REQUEST_DUMMY)
+            end
             execute_without_newrelic_trace!
           ensure
-            segment.finish if segment
+            segment.finish if defined?(segment) && segment
           end
+          # rubocop:enable Metrics/MethodLength
 
           alias_method :execute_without_newrelic_trace!, :execute!
           alias_method :execute!, :execute_with_newrelic_trace!
         end
 
         ::Manticore::Response.class_eval do
+          # This is called for every request, also parallel and async
+          # requests.
+          #
           # rubocop:disable Metrics/MethodLength
           def call_with_newrelic_trace
-            segment = create_newrelic_segment
+            if NewRelic::Manticore.create_segment?
+              segment = create_newrelic_segment
 
-            segment.add_request_headers(WrappedRequest.new(@request))
-            on_complete do |response|
-              begin
-                segment.read_response_headers(WrappedResponse.new(response))
-              ensure
-                segment.finish
+              segment.add_request_headers(WrappedRequest.new(@request))
+              on_complete do |response|
+                begin
+                  segment.read_response_headers(WrappedResponse.new(response))
+                ensure
+                  segment.finish
+                end
               end
             end
             call_without_newrelic_trace
           rescue StandardError => e
-            segment.finish if segment
+            segment.finish if defined?(segment) && segment
             raise e
           end
           # rubocop:enable Metrics/MethodLength

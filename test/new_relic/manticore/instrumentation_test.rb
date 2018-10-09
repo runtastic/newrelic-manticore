@@ -28,6 +28,10 @@ module NewRelic
         clear_metrics!
       end
 
+      it "works without a transaction" do
+        ::Manticore.get(request_uri).body
+      end
+
       it "instruments GET requests" do
         in_transaction { ::Manticore.get(request_uri).body }
         assert_metrics_recorded("External/#{external_service}/Manticore/GET" => { call_count: 1 })
@@ -54,6 +58,21 @@ module NewRelic
           end
 
           assert_metrics_recorded("External/<MultipleHosts>/Manticore/Parallel batch" => { call_count: 1 })
+        end
+
+        it "does not create an external request segments" do
+          expect(NewRelic::Agent::External).not_to receive(:start_segment)
+
+          in_transaction do
+            NewRelic::Agent::Datastores.wrap("Elasticsearch", "Search", "index_name") do
+              client = ::Manticore::Client.new
+              client.parallel.get("http://google.com")
+              client.parallel.get("http://yahoo.com")
+              client.execute!
+            end
+          end
+
+          assert_metrics_recorded("Datastore/operation/Elasticsearch/Search" => { call_count: 1 })
         end
       end
 
@@ -82,14 +101,16 @@ module NewRelic
       end
 
       describe "when manticore is used as transport for a database (e.g. in Elasticsearch)" do
-        it "does not record this http call" do
+        it "does not create an external request segment" do
+          expect(NewRelic::Agent::External).not_to receive(:start_segment)
+
           in_transaction do
             NewRelic::Agent::Datastores.wrap("Elasticsearch", "Search", "index_name") do
-              ::Manticore.post(request_uri, body: "data")
+              ::Manticore.post(request_uri, body: "data").body
             end
           end
 
-          assert_no_metrics_match(/Manticore/)
+          assert_metrics_recorded("Datastore/operation/Elasticsearch/Search" => { call_count: 1 })
         end
       end
 
