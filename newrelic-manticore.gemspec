@@ -4,6 +4,7 @@ lib = File.expand_path("lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "new_relic/manticore/version"
 
+# rubocop:disable Metrics/BlockLength
 Gem::Specification.new do |gem|
   gem.name          = "newrelic-manticore"
   gem.version       = NewRelic::Manticore::VERSION
@@ -30,9 +31,11 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "bundler", "~> 1.13"
   gem.add_development_dependency "manticore", "~> 0"
   gem.add_development_dependency "minitest"
+  gem.add_development_dependency "pry"
   gem.add_development_dependency "rake", "~> 10.0"
   gem.add_development_dependency "rspec", "~> 3.0"
   gem.add_development_dependency "rt_rubocop_defaults", "~> 1"
   gem.add_development_dependency "rubocop_runner", "~> 2"
   gem.add_development_dependency "webmock", "~> 3"
 end
+# rubocop:enable Metrics/BlockLength

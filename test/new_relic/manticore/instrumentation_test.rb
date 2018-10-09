@@ -9,6 +9,7 @@ require "webmock/minitest"
 require "newrelic_rpm"
 require "manticore"
 require "new_relic/manticore"
+require "pry"
 
 NewRelic::Agent.require_test_helper
 DependencyDetection.detect!
@@ -38,6 +39,31 @@ module NewRelic
       it "instruments POST requests" do
         in_transaction { ::Manticore.post(request_uri, body: "data") }
         assert_metrics_recorded("External/#{external_service}/Manticore/POST" => { call_count: 1 })
+      end
+
+      describe "with async parallel manticore requests" do
+        before do
+          stub_request(:any, /google.com/)
+          stub_request(:any, /yahoo.com/)
+        end
+
+        it "tracks two segments" do
+          in_transaction do
+            client = ::Manticore::Client.new
+            response1 = client.parallel.get("http://google.com")
+            response2 = client.parallel.get("http://yahoo.com")
+
+            success_count = 0
+            response1.on_success { |_response| success_count += 1 }
+            response2.on_success { |_response| success_count += 1 }
+            client.execute!
+
+            assert(success_count, 2)
+          end
+
+          assert_metrics_recorded("External/google.com/Manticore/GET" => { call_count: 1 })
+          assert_metrics_recorded("External/yahoo.com/Manticore/GET" => { call_count: 1 })
+        end
       end
 
       describe "when manticore is used as transport for a database (e.g. in Elasticsearch)" do
