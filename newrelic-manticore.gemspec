@@ -17,6 +17,7 @@ Gem::Specification.new do |gem|
   gem.summary       = "Newrelic support for manticore"
   gem.description   = "Adds manticore tracking for HTTP calls and Elasticsearch to Newrelic"
   gem.homepage      = "http://github.com/runtastic/newrelic-manticore"
+  gem.license       = "MIT"
 
   gem.platform      = "java"
   gem.files = `git ls-files -z`.split("\x0").reject do |f|
