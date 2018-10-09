@@ -31,6 +31,10 @@ module NewRelic
         clear_metrics!
       end
 
+      it "works without a transaction" do
+        ::Manticore.get(request_uri)
+      end
+
       it "instruments GET requests" do
         in_transaction { ::Manticore.get(request_uri, query: { q: "kittens" }) }
         assert_metrics_recorded("External/#{external_service}/Manticore/GET" => { call_count: 1 })
@@ -75,6 +79,32 @@ module NewRelic
           end
 
           assert_no_metrics_match(/Manticore/)
+        end
+
+        it "does count the time spent in manticore to the database call" do
+          stub_request(:any, /#{request_uri}/)
+            .to_return(body: lambda do |_request|
+              sleep 1
+              "abc"
+            end)
+
+          in_transaction do
+            NewRelic::Agent::Datastores.wrap("Elasticsearch", "Search", "index_name") do
+              ::Manticore.post(request_uri, body: "data")
+            end
+          end
+
+          assert_metrics_recorded("Datastore/operation/Elasticsearch/Search" => { call_count: 1 })
+
+          time_in_db_segment = NewRelic::Agent
+                               .instance
+                               .stats_engine
+                               .to_h
+                               .find do |metric_spec, _stats|
+            metric_spec.name == "Datastore/statement/Elasticsearch/index_name/Search"
+          end.last.total_exclusive_time
+
+          assert_operator(time_in_db_segment, :>, 1.0)
         end
       end
 
