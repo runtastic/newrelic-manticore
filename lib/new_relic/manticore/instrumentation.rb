@@ -27,12 +27,9 @@ module NewRelic
 
         ::Manticore::Client.class_eval do
           def request_with_newrelic_trace(*args, &blk)
-            segment = NewRelic::Agent::External.start_segment(library: "Manticore",
-                                                              uri: args[1],
-                                                              procedure: args[0].new.method)
+            segment = create_newrelic_segment(*args)
 
-            headers = args[2][:headers]
-            segment.add_request_headers(WrappedRequestHeaders.new(headers))
+            segment.add_request_headers(WrappedRequestHeaders.new(args[2][:headers]))
             request_without_newrelic_trace(*args, &blk).tap do |response|
               segment.read_response_headers(WrappedResponse.new(response))
             end
@@ -42,6 +39,16 @@ module NewRelic
 
           alias_method :request_without_newrelic_trace, :request
           alias_method :request, :request_with_newrelic_trace
+
+          def create_newrelic_segment(*args)
+            NewRelic::Agent::External.start_segment(
+              library: "Manticore",
+              uri: args[1],
+              procedure: args[0].new.method
+            ).tap do |segment|
+              segment.record_metrics = false if segment.parent.is_a?(::NewRelic::Agent::Transaction::DatastoreSegment)
+            end
+          end
         end
       end
     end
