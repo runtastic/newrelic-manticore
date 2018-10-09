@@ -15,7 +15,7 @@ Gem::Specification.new do |gem|
                        "alexander.junger@runtastic.com"]
 
   gem.summary       = "Newrelic support for manticore"
-  gem.description   = "Adds manticore tracking for HTTP calls and Elasticsearch to Newrelic"
+  gem.description   = "Adds manticore tracking for HTTP calls to Newrelic"
   gem.homepage      = "http://github.com/runtastic/newrelic-manticore"
   gem.license       = "MIT"
 
