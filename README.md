@@ -1,11 +1,12 @@
 [travis]: https://travis-ci.org/runtastic/newrelic-manticore
+[rubygems]: https://rubygems.org/gems/newrelic-manticore
 [manticore]: https://gitlab.com/cheald/manticore
 [mit]: http://opensource.org/licenses/MIT
 [cc]: http://contributor-covenant.org
 
 # NewrelicManticore
 
-[![Build Status](https://travis-ci.org/runtastic/newrelic-manticore.svg?branch=master)][travis]
+[![Build Status](https://travis-ci.org/runtastic/newrelic-manticore.svg?branch=master)][travis] [![Gem Version](https://badge.fury.io/rb/newrelic-manticore.svg)][rubygems]
 
 Adds NewRelic instrumentation for the [Manticore JRuby HTTP client][manticore].
 
