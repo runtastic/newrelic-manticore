@@ -4,6 +4,7 @@ $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 
 require "minitest/autorun"
 require "minitest/unit"
+require "rspec/mocks/minitest_integration"
 require "webmock/minitest"
 require "newrelic_rpm"
 require "manticore"
@@ -26,6 +27,7 @@ module NewRelic
         stub_request(:any, /collector.newrelic.com/)
         stub_request(:any, /#{request_uri}/)
         NewRelic::Agent.manual_start
+        clear_metrics!
       end
 
       it "instruments GET requests" do
@@ -36,6 +38,42 @@ module NewRelic
       it "instruments POST requests" do
         in_transaction { ::Manticore.post(request_uri, body: "data") }
         assert_metrics_recorded("External/#{external_service}/Manticore/POST" => { call_count: 1 })
+      end
+
+      describe "with cross app tracking enabled" do
+        let(:config) do
+          {
+            "cross_application_tracer.enabled": true,
+            "distributed_tracing.enabled": false,
+            "cross_process_id": "1",
+            "encoding_key": "utf8"
+          }
+        end
+
+        it "adds newrelic tracking headers" do
+          stub_request(:any, /#{request_uri}/).with(
+            headers: { "X-Newrelic-Id": /./, "Foo": /./ }
+          )
+
+          with_config(config) do
+            in_transaction do |_transaction|
+              ::Manticore.post(request_uri, body: "data", headers: { "foo" => "bar" })
+            end
+          end
+        end
+
+        it "no error occurs during reading or writing headers" do
+          expect(NewRelic::Agent.logger).not_to receive(:error)
+            .with(/add_request_headers/, anything)
+          expect(NewRelic::Agent.logger).not_to receive(:error)
+            .with(/read_response_headers/, anything)
+
+          with_config(config) do
+            in_transaction do |_transaction|
+              ::Manticore.post(request_uri, body: "data")
+            end
+          end
+        end
       end
     end
   end
