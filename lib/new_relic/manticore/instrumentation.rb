@@ -27,6 +27,8 @@ module NewRelic
 
         ::Manticore::Client.class_eval do
           def request_with_newrelic_trace(*args, &blk)
+            return request_without_newrelic_trace(*args, &blk) if in_newrelic_database_segment?
+
             segment = create_newrelic_segment(*args)
 
             segment.add_request_headers(WrappedRequestHeaders.new(args[2][:headers]))
@@ -45,9 +47,16 @@ module NewRelic
               library: "Manticore",
               uri: args[1],
               procedure: args[0].new.method
-            ).tap do |segment|
-              segment.record_metrics = false if segment.parent.is_a?(::NewRelic::Agent::Transaction::DatastoreSegment)
-            end
+            )
+          end
+
+          def in_newrelic_database_segment?
+            state = NewRelic::Agent::TransactionState.tl_get
+            return unless state && state.current_transaction
+
+            state.current_transaction.segments.last.is_a?(
+              ::NewRelic::Agent::Transaction::DatastoreSegment
+            )
           end
         end
       end
