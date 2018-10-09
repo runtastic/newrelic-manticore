@@ -40,6 +40,18 @@ module NewRelic
         assert_metrics_recorded("External/#{external_service}/Manticore/POST" => { call_count: 1 })
       end
 
+      describe "when manticore is used as transport for a database (e.g. in Elasticsearch)" do
+        it "does not record this http call" do
+          in_transaction do
+            NewRelic::Agent::Datastores.wrap("Elasticsearch", "Search", "index_name") do
+              ::Manticore.post(request_uri, body: "data")
+            end
+          end
+
+          assert_no_metrics_match(/Manticore/)
+        end
+      end
+
       describe "with cross app tracking enabled" do
         let(:config) do
           {
