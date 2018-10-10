@@ -5,8 +5,9 @@ $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "minitest/autorun"
 require "minitest/unit"
 require "rspec/mocks/minitest_integration"
-require "webmock/minitest"
 require "newrelic_rpm"
+require "faraday"
+require "faraday/adapter/manticore"
 require "manticore"
 require "new_relic/manticore"
 require "pry"
@@ -16,37 +17,28 @@ DependencyDetection.detect!
 
 module NewRelic
   module Manticore
-    class InstrumentationTest < Minitest::Unit::TestCase
+    class InstrumentationTest < Minitest::Test
       extend Minitest::Spec::DSL
 
       let(:external_service) { "www.google.com" }
       let(:request_uri) { "https://#{external_service}" }
 
       before do
-        stub_request(:any, /169.254.169.254/)          # Disable AWS instance identity check
-        stub_request(:any, /metadata.google.internal/) # Disable Google cloud instance identity check
-        stub_request(:any, /collector.newrelic.com/)
-        stub_request(:any, /#{request_uri}/)
         NewRelic::Agent.manual_start
         clear_metrics!
       end
 
       it "instruments GET requests" do
-        in_transaction { ::Manticore.get(request_uri, query: { q: "kittens" }) }
+        in_transaction { ::Manticore.get(request_uri).body }
         assert_metrics_recorded("External/#{external_service}/Manticore/GET" => { call_count: 1 })
       end
 
       it "instruments POST requests" do
-        in_transaction { ::Manticore.post(request_uri, body: "data") }
+        in_transaction { ::Manticore.post(request_uri, body: "data").body }
         assert_metrics_recorded("External/#{external_service}/Manticore/POST" => { call_count: 1 })
       end
 
-      describe "with async parallel manticore requests" do
-        before do
-          stub_request(:any, /google.com/)
-          stub_request(:any, /yahoo.com/)
-        end
-
+      describe "with parallel manticore requests" do
         it "tracks two segments" do
           in_transaction do
             client = ::Manticore::Client.new
@@ -61,8 +53,31 @@ module NewRelic
             assert(success_count, 2)
           end
 
+          assert_metrics_recorded("External/<MultipleHosts>/Manticore/Parallel batch" => { call_count: 1 })
+        end
+      end
+
+      describe "with async manticore requests" do
+        it "tracks a segment" do
+          in_transaction do
+            client = ::Manticore::Client.new
+            request = client.background.get("http://google.com")
+            future = request.call
+            future.get
+          end
+
           assert_metrics_recorded("External/google.com/Manticore/GET" => { call_count: 1 })
-          assert_metrics_recorded("External/yahoo.com/Manticore/GET" => { call_count: 1 })
+        end
+      end
+
+      describe "a request made with faraday" do
+        it "instruments the request" do
+          in_transaction do
+            Faraday
+              .new { |f| f.adapter :manticore }
+              .get(request_uri).body
+          end
+          assert_metrics_recorded("External/#{external_service}/Manticore/GET" => { call_count: 1 })
         end
       end
 
@@ -89,13 +104,14 @@ module NewRelic
         end
 
         it "adds newrelic tracking headers" do
-          stub_request(:any, /#{request_uri}/).with(
-            headers: { "X-Newrelic-Id": /./, "Foo": /./ }
-          )
-
           with_config(config) do
             in_transaction do |_transaction|
-              ::Manticore.post(request_uri, body: "data", headers: { "foo" => "bar" })
+              response = ::Manticore.post(request_uri, body: "data", headers: { "foo" => "bar" })
+              response.body
+
+              assert_includes(response.request.headers.keys, "X-NewRelic-ID")
+              assert_includes(response.request.headers.keys, "X-NewRelic-Transaction")
+              assert_includes(response.request.headers.keys, "foo")
             end
           end
         end
