@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
+require "ostruct"
+
 require "new_relic/agent/method_tracer"
 require "new_relic/agent/http_clients/abstract_request"
 
-require "new_relic/manticore/wrapped_request_headers"
+require "new_relic/manticore/wrapped_request"
 require "new_relic/manticore/wrapped_response"
 
 module NewRelic
@@ -24,27 +26,55 @@ module NewRelic
 
       executes do
         require "new_relic/agent/external"
+        PARALLEL_REQUEST_DUMMY = OpenStruct.new(
+          host_from_header: "<MultipleHosts>"
+        )
 
         ::Manticore::Client.class_eval do
-          def request_with_newrelic_trace(*args, &blk)
-            segment = create_newrelic_segment(*args)
-
-            segment.add_request_headers(WrappedRequestHeaders.new(args[2][:headers]))
-            request_without_newrelic_trace(*args, &blk).tap do |response|
-              segment.read_response_headers(WrappedResponse.new(response))
-            end
+          def execute_with_newrelic_trace!
+            segment = NewRelic::Agent::External.start_segment(
+              library: "Manticore",
+              uri: @async_requests.first.request.uri.to_s,
+              procedure: "Parallel batch"
+            )
+            segment.add_request_headers(PARALLEL_REQUEST_DUMMY)
+            execute_without_newrelic_trace!
           ensure
             segment.finish if segment
           end
 
-          alias_method :request_without_newrelic_trace, :request
-          alias_method :request, :request_with_newrelic_trace
+          alias_method :execute_without_newrelic_trace!, :execute!
+          alias_method :execute!, :execute_with_newrelic_trace!
+        end
 
-          def create_newrelic_segment(*args)
+        ::Manticore::Response.class_eval do
+          # rubocop:disable Metrics/MethodLength
+          def call_with_newrelic_trace
+            segment = create_newrelic_segment
+
+            segment.add_request_headers(WrappedRequest.new(@request))
+            on_complete do |response|
+              begin
+                segment.read_response_headers(WrappedResponse.new(response))
+              ensure
+                segment.finish
+              end
+            end
+            call_without_newrelic_trace
+          rescue StandardError => e
+            segment.finish if segment
+            raise e
+          end
+          # rubocop:enable Metrics/MethodLength
+
+          alias_method :call_without_newrelic_trace, :call
+          alias_method :call, :call_with_newrelic_trace
+
+          def create_newrelic_segment
             NewRelic::Agent::External.start_segment(
               library: "Manticore",
-              uri: args[1],
-              procedure: args[0].new.method
+              uri: @request.uri.to_s,
+              procedure: @request.method
             ).tap do |segment|
               segment.record_metrics = false if segment.parent.is_a?(::NewRelic::Agent::Transaction::DatastoreSegment)
             end
