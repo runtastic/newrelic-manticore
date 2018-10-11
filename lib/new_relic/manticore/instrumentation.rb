@@ -19,14 +19,14 @@ module NewRelic
     # operation
     def self.create_segment?
       state = NewRelic::Agent::TransactionState.tl_get
-      return false unless state && state.current_transaction
+      return false unless state &&
+                          state.current_transaction
 
-      existing_segments = state.current_transaction.segments
+      return true unless state.current_transaction.current_segment
 
-      existing_segments.empty? ||
-        !existing_segments.last.is_a?(
-          ::NewRelic::Agent::Transaction::DatastoreSegment
-        )
+      !state.current_transaction.current_segment.is_a?(
+        ::NewRelic::Agent::Transaction::DatastoreSegment
+      )
     end
 
     # rubocop:disable Metrics/BlockLength
@@ -81,7 +81,6 @@ module NewRelic
           def call_with_newrelic_trace
             if NewRelic::Manticore.create_segment?
               segment = create_newrelic_segment
-
               segment.add_request_headers(WrappedRequest.new(@request))
               on_complete do |response|
                 begin

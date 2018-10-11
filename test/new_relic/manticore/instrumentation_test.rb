@@ -1,16 +1,6 @@
 # frozen_string_literal: true
 
-$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
-
-require "minitest/autorun"
-require "minitest/unit"
-require "rspec/mocks/minitest_integration"
-require "newrelic_rpm"
-require "faraday"
-require "faraday/adapter/manticore"
-require "manticore"
-require "new_relic/manticore"
-require "pry"
+require "./test/test_helper"
 
 NewRelic::Agent.require_test_helper
 DependencyDetection.detect!
@@ -72,7 +62,8 @@ module NewRelic
             end
           end
 
-          assert_metrics_recorded("Datastore/operation/Elasticsearch/Search" => { call_count: 1 })
+          metric = "Datastore/operation/Elasticsearch/Search"
+          assert_metrics_recorded(metric => { call_count: 1 })
         end
       end
 
@@ -101,16 +92,40 @@ module NewRelic
       end
 
       describe "when manticore is used as transport for a database (e.g. in Elasticsearch)" do
-        it "does not create an external request segment" do
-          expect(NewRelic::Agent::External).not_to receive(:start_segment)
+        it "does not deduct manticore time from exclusive database time" do
+          client = ::Manticore::Client.new
+          expect(client.client).to receive(:execute).and_wrap_original do |original, *args|
+            sleep(1)
+            original.call(*args)
+          end
 
           in_transaction do
             NewRelic::Agent::Datastores.wrap("Elasticsearch", "Search", "index_name") do
-              ::Manticore.post(request_uri, body: "data").body
+              client.post(request_uri, body: "data").body
             end
           end
 
-          assert_metrics_recorded("Datastore/operation/Elasticsearch/Search" => { call_count: 1 })
+          db_metric = "Datastore/operation/Elasticsearch/Search"
+          database_spec = metric_spec_from_specish(db_metric)
+          exclusive_time = NewRelic::Agent.instance.stats_engine.to_h[database_spec].total_exclusive_time
+
+          assert_operator(exclusive_time, :>, 1.0)
+
+          assert_metrics_recorded(db_metric => { call_count: 1 })
+          assert_metrics_not_recorded("External/#{external_service}/Manticore/POST" => { call_count: 1 })
+        end
+
+        describe "when the last segment before the manticore segment is a finished database segment" do
+          it "does create an external request segment" do
+            in_transaction do
+              NewRelic::Agent::Datastores.wrap("Elasticsearch", "Search", "index_name") do
+                sleep(0.01)
+              end
+              ::Manticore.post(request_uri, body: "data").body
+            end
+
+            assert_metrics_recorded("External/#{external_service}/Manticore/POST" => { call_count: 1 })
+          end
         end
       end
 
