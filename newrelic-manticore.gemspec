@@ -2,12 +2,12 @@
 
 lib = File.expand_path("lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "new_relic/manticore/version"
+require "newrelic/manticore/version"
 
 # rubocop:disable Metrics/BlockLength
 Gem::Specification.new do |gem|
   gem.name          = "newrelic-manticore"
-  gem.version       = NewRelic::Manticore::VERSION
+  gem.version       = Newrelic::Manticore::VERSION
   gem.authors       = ["Dominik Goltermann",
                        "Alexander Junger"]
 

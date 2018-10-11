@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module NewRelic
+module Newrelic
   module Manticore
     VERSION = "0.1.0".freeze
   end
