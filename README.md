@@ -27,7 +27,7 @@ It wraps `Manticore::Response#call` and traces your HTTP calls as external reque
 adding also the necessary headers for cross application tracing.
 
 ### What about parallel requests?
-The NewRelic agent is currently not set up to support threaded requests. As [any of the other client integrations](https://docs.newrelic.com/docs/agents/ruby-agent/features/http-client-tracing-ruby#typhoeus),
+The NewRelic agent is currently not set up to support multithreaded requests. As [any of the other client integrations](https://docs.newrelic.com/docs/agents/ruby-agent/features/http-client-tracing-ruby#typhoeus),
 _newrelic-manticore_ will trace all parallel requests as [one external service call](https://github.com/runtastic/newrelic-manticore/blob/master/test/new_relic/manticore/instrumentation_test.rb#L50).
 
 ### What about "background"/async requests?
