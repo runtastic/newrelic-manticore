@@ -6,7 +6,9 @@
 
 # NewrelicManticore
 
-[![Build Status](https://travis-ci.org/runtastic/newrelic-manticore.svg?branch=master)][travis] [![Gem Version](https://badge.fury.io/rb/newrelic-manticore.svg)][rubygems]
+[![Build Status](https://travis-ci.org/runtastic/newrelic-manticore.svg?branch=master)][travis]
+[![Gem Version](https://badge.fury.io/rb/newrelic-manticore.svg)][rubygems]
+[![codecov](https://codecov.io/gh/runtastic/newrelic-manticore/branch/master/graph/badge.svg)](https://codecov.io/gh/runtastic/newrelic-manticore)
 
 Adds NewRelic instrumentation for the [Manticore JRuby HTTP client][manticore].
 
