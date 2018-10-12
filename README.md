@@ -23,8 +23,15 @@ And then execute:
 
 ## How it works
 When `newrelic/manticore` is required (e.g. automatically by Bundler), the gem becomes active.
-It hooks itself into `Manticore::Client#request` and traces your HTTP calls as external requests,
+It wraps `Manticore::Response#call` and traces your HTTP calls as external requests,
 adding also the necessary headers for cross application tracing.
+
+### What about parallel requests?
+The NewRelic agent is currently not set up to support threaded requests. As [any of the other client integrations](https://docs.newrelic.com/docs/agents/ruby-agent/features/http-client-tracing-ruby#typhoeus),
+_newrelic-manticore_ will trace all parallel requests as [one external service call](https://github.com/runtastic/newrelic-manticore/blob/master/test/new_relic/manticore/instrumentation_test.rb#L50).
+
+### What about "background"/async requests?
+Those are traced normally as any other request would be.
 
 ## Contributing
 Bug reports and pull requests are welcome on GitHub at https://github.com/runtastic/newrelic-manticore.
