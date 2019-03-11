@@ -101,7 +101,7 @@ module NewRelic
           alias_method :call, :call_with_newrelic_trace
 
           def create_newrelic_segment
-            NewRelic::Agent::External.start_segment(
+            NewRelic::Agent::Tracer.start_external_request_segment(
               library:   "Manticore",
               uri:       @request.uri.to_s,
               procedure: @request.method
