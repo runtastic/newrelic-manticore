@@ -27,7 +27,7 @@ Gem::Specification.new do |gem|
   gem.executables   = gem.files.grep(%r{^exe/}) { |f| File.basename(f) }
   gem.require_paths = ["lib"]
 
-  gem.add_runtime_dependency     "newrelic_rpm", "~> 5"
+  gem.add_runtime_dependency     "newrelic_rpm", "~> 6"
 
   gem.add_development_dependency "bundler", "~> 1.13"
   gem.add_development_dependency "faraday", "~> 0"
