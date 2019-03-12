@@ -29,7 +29,7 @@ Gem::Specification.new do |gem|
 
   gem.add_runtime_dependency     "newrelic_rpm", "~> 6"
 
-  gem.add_development_dependency "bundler", "~> 1.13"
+  gem.add_development_dependency "bundler"
   gem.add_development_dependency "faraday", "~> 0"
   gem.add_development_dependency "manticore", "~> 0"
   gem.add_development_dependency "minitest"
