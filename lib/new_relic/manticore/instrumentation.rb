@@ -20,7 +20,7 @@ module NewRelic
     def self.create_segment?
       state = NewRelic::Agent::TransactionState.tl_get
       return false unless state &&
-                          state.current_transaction
+        state.current_transaction
 
       return true unless state.current_transaction.current_segment
 
@@ -57,8 +57,8 @@ module NewRelic
           def execute_with_newrelic_trace!
             if NewRelic::Manticore.create_segment?
               segment = NewRelic::Agent::External.start_segment(
-                library: "Manticore",
-                uri: @async_requests.first.request.uri.to_s,
+                library:   "Manticore",
+                uri:       @async_requests.first.request.uri.to_s,
                 procedure: "Parallel batch"
               )
               segment.add_request_headers(PARALLEL_REQUEST_DUMMY)
@@ -102,8 +102,8 @@ module NewRelic
 
           def create_newrelic_segment
             NewRelic::Agent::External.start_segment(
-              library: "Manticore",
-              uri: @request.uri.to_s,
+              library:   "Manticore",
+              uri:       @request.uri.to_s,
               procedure: @request.method
             ).tap do |segment|
               segment.record_metrics = false if segment.parent.is_a?(::NewRelic::Agent::Transaction::DatastoreSegment)

@@ -133,9 +133,9 @@ module NewRelic
         let(:config) do
           {
             "cross_application_tracer.enabled": true,
-            "distributed_tracing.enabled": false,
-            "cross_process_id": "1",
-            "encoding_key": "utf8"
+            "distributed_tracing.enabled":      false,
+            "cross_process_id":                 "1",
+            "encoding_key":                     "utf8"
           }
         end
 
