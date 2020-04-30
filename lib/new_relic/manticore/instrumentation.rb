@@ -18,8 +18,7 @@ module NewRelic
     # operation
     def self.create_segment?
       state = NewRelic::Agent::TransactionState.tl_get
-      return false unless state &&
-        state.current_transaction
+      return false unless state&.current_transaction
 
       return true unless state.current_transaction.current_segment
 
