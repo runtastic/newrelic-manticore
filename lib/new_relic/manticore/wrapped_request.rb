@@ -1,3 +1,12 @@
+# Check version to account for a breaking path change
+# introduced in 6.10
+#
+if NewRelic::VERSION::MAJOR == 6 && NewRelic::VERSION::MINOR < 10
+  require "new_relic/agent/http_clients/abstract_request"
+else
+  require "new_relic/agent/http_clients/abstract"
+end
+
 module NewRelic
   module Manticore
     class WrappedRequest < Agent::HTTPClients::AbstractRequest

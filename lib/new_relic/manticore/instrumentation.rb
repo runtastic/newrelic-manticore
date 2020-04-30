@@ -3,7 +3,6 @@
 require "ostruct"
 
 require "new_relic/agent/method_tracer"
-require "new_relic/agent/http_clients/abstract_request"
 
 require "new_relic/manticore/wrapped_request"
 require "new_relic/manticore/wrapped_response"
