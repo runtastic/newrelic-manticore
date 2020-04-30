@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Check version to account for a breaking path change
 # introduced in 6.10
 #
