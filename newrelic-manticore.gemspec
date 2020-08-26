@@ -27,15 +27,16 @@ Gem::Specification.new do |gem|
   gem.executables   = gem.files.grep(%r{^exe/}) { |f| File.basename(f) }
   gem.require_paths = ["lib"]
 
-  gem.add_runtime_dependency     "newrelic_rpm", "~> 6"
+  gem.required_ruby_version = ">= 2.0.0"
+
   gem.add_runtime_dependency     "manticore", "~> 0.6", ">= 0.6.4"
+  gem.add_runtime_dependency     "newrelic_rpm", "~> 6"
 
   gem.add_development_dependency "bundler"
   gem.add_development_dependency "faraday", "~> 0"
-  gem.add_development_dependency "manticore", "~> 0"
   gem.add_development_dependency "minitest"
   gem.add_development_dependency "pry"
-  gem.add_development_dependency "rake", "~> 10.0"
+  gem.add_development_dependency "rake", "~> 12.3", ">= 12.3.3"
   gem.add_development_dependency "rspec", "~> 3.0"
   gem.add_development_dependency "rt_rubocop_defaults", "~> 1"
   gem.add_development_dependency "rubocop_runner", "~> 2"
