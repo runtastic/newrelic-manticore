@@ -82,7 +82,7 @@ module NewRelic
               segment.add_request_headers(WrappedRequest.new(@request))
               on_complete do |response|
                 begin
-                  segment.read_response_headers(WrappedResponse.new(response))
+                  segment.process_response_headers(WrappedResponse.new(response))
                 ensure
                   segment.finish
                 end
