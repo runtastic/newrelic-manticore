@@ -1,9 +1,12 @@
 # frozen_string_literal: true
 
+require "new_relic/agent/http_clients/abstract"
+
 module NewRelic
   module Manticore
-    class WrappedResponse
+    class WrappedResponse < NewRelic::Agent::HTTPClients::AbstractResponse
       def initialize(response)
+        super(response)
         @headers = response.headers
       end
 
