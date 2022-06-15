@@ -75,44 +75,7 @@ module NewRelic
         end
       end
 
-      describe "when manticore is used as transport for a database (e.g. in Elasticsearch)" do
-        it "does not deduct manticore time from exclusive database time" do
-          client = ::Manticore::Client.new
-          expect(client.client).to receive(:execute).and_wrap_original do |original, *args|
-            sleep(1)
-            original.call(*args)
-          end
-
-          in_transaction do
-            NewRelic::Agent::Datastores.wrap("Elasticsearch", "Search", "index_name") do
-              client.post(request_uri, body: "data").body
-            end
-          end
-
-          db_metric = "Datastore/operation/Elasticsearch/Search"
-          database_spec = metric_spec_from_specish(db_metric)
-          exclusive_time = NewRelic::Agent.instance.stats_engine.to_h[database_spec].total_exclusive_time
-
-          assert_operator(exclusive_time, :>, 1.0)
-
-          assert_metrics_recorded(db_metric => { call_count: 1 })
-        end
-
-        describe "when the last segment before the manticore segment is a finished database segment" do
-          it "does create an external request segment" do
-            in_transaction do
-              NewRelic::Agent::Datastores.wrap("Elasticsearch", "Search", "index_name") do
-                sleep(0.01)
-              end
-              ::Manticore.post(request_uri, body: "data").body
-            end
-
-            assert_metrics_recorded("External/#{external_service}/Manticore/POST" => { call_count: 1 })
-          end
-        end
-      end
-
-      describe "with cross app tracking disabled" do
+      describe "with distributed tracing enabled" do
         let(:config) do
           {
             "cross_application_tracer.enabled": false,
