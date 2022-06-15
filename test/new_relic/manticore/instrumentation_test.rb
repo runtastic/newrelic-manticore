@@ -49,22 +49,6 @@ module NewRelic
 
           assert_metrics_recorded("External/<MultipleHosts>/Manticore/Parallel batch" => { call_count: 1 })
         end
-
-        it "does not create an external request segments" do
-          expect(NewRelic::Agent::External).not_to receive(:start_segment)
-
-          in_transaction do
-            NewRelic::Agent::Datastores.wrap("Elasticsearch", "Search", "index_name") do
-              client = ::Manticore::Client.new
-              client.parallel.get("http://google.com")
-              client.parallel.get("http://yahoo.com")
-              client.execute!
-            end
-          end
-
-          metric = "Datastore/operation/Elasticsearch/Search"
-          assert_metrics_recorded(metric => { call_count: 1 })
-        end
       end
 
       describe "with async manticore requests" do
@@ -91,49 +75,11 @@ module NewRelic
         end
       end
 
-      describe "when manticore is used as transport for a database (e.g. in Elasticsearch)" do
-        it "does not deduct manticore time from exclusive database time" do
-          client = ::Manticore::Client.new
-          expect(client.client).to receive(:execute).and_wrap_original do |original, *args|
-            sleep(1)
-            original.call(*args)
-          end
-
-          in_transaction do
-            NewRelic::Agent::Datastores.wrap("Elasticsearch", "Search", "index_name") do
-              client.post(request_uri, body: "data").body
-            end
-          end
-
-          db_metric = "Datastore/operation/Elasticsearch/Search"
-          database_spec = metric_spec_from_specish(db_metric)
-          exclusive_time = NewRelic::Agent.instance.stats_engine.to_h[database_spec].total_exclusive_time
-
-          assert_operator(exclusive_time, :>, 1.0)
-
-          assert_metrics_recorded(db_metric => { call_count: 1 })
-          assert_metrics_not_recorded("External/#{external_service}/Manticore/POST" => { call_count: 1 })
-        end
-
-        describe "when the last segment before the manticore segment is a finished database segment" do
-          it "does create an external request segment" do
-            in_transaction do
-              NewRelic::Agent::Datastores.wrap("Elasticsearch", "Search", "index_name") do
-                sleep(0.01)
-              end
-              ::Manticore.post(request_uri, body: "data").body
-            end
-
-            assert_metrics_recorded("External/#{external_service}/Manticore/POST" => { call_count: 1 })
-          end
-        end
-      end
-
-      describe "with cross app tracking enabled" do
+      describe "with distributed tracing enabled" do
         let(:config) do
           {
-            "cross_application_tracer.enabled": true,
-            "distributed_tracing.enabled":      false,
+            "cross_application_tracer.enabled": false,
+            "distributed_tracing.enabled":      true,
             "cross_process_id":                 "1",
             "encoding_key":                     "utf8"
           }
@@ -145,8 +91,7 @@ module NewRelic
               response = ::Manticore.post(request_uri, body: "data", headers: { "foo" => "bar" })
               response.body
 
-              assert_includes(response.request.headers.keys, "X-NewRelic-ID")
-              assert_includes(response.request.headers.keys, "X-NewRelic-Transaction")
+              assert_includes(response.request.headers.keys, "newrelic")
               assert_includes(response.request.headers.keys, "foo")
             end
           end

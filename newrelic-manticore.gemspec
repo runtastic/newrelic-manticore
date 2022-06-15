@@ -30,7 +30,7 @@ Gem::Specification.new do |gem|
   gem.required_ruby_version = ">= 2.0.0"
 
   gem.add_runtime_dependency     "manticore", "~> 0.6", ">= 0.6.4"
-  gem.add_runtime_dependency     "newrelic_rpm", ">= 6", "< 8"
+  gem.add_runtime_dependency     "newrelic_rpm", ">= 8", "< 9"
 
   gem.add_development_dependency "bundler"
   gem.add_development_dependency "faraday", "~> 0"
