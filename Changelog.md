@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dropped support for newrelic_rpm 6 and 7
 - Removed deprecated NewRelic API methods
 - Removed workaround for DatastoreSegment
+- Require manticore 0.9
 
 ## [1.2.0] - 2021-05-17
 - Require newrelic_rpm > 6 and < 8
