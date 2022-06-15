@@ -54,9 +54,15 @@ module NewRelic
           # rubocop:disable Metrics/MethodLength
           def execute_with_newrelic_trace!
             if NewRelic::Manticore.create_segment?
-              segment = NewRelic::Agent::External.start_segment(
+              req = []
+              req << @async_requests.pop until @async_requests.empty?
+              req.each do |r|
+                @async_requests.push(r)
+              end
+
+              segment = NewRelic::Agent::Tracer.start_external_request_segment(
                 library:   "Manticore",
-                uri:       @async_requests.first.request.uri.to_s,
+                uri:       req.first.request.uri.to_s,
                 procedure: "Parallel batch"
               )
               segment.add_request_headers(PARALLEL_REQUEST_DUMMY)
@@ -103,9 +109,7 @@ module NewRelic
               library:   "Manticore",
               uri:       @request.uri.to_s,
               procedure: @request.method
-            ).tap do |segment|
-              segment.record_metrics = false if segment.parent.is_a?(::NewRelic::Agent::Transaction::DatastoreSegment)
-            end
+            )
           end
         end
       end
